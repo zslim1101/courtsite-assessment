@@ -1,0 +1,22 @@
+{
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch server.ts"
+  },
+  "type": "module",
+  "dependencies": {
+    "fastify": "^5.8.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.7.0",
+    "tsx": "^4.21.0"
+  },
+  "name": "courtsite-assessment",
+  "version": "1.0.0",
+  "main": "dist/server.js",
+  "repository": "https://github.com/zslim1101/courtsite-assessment.git",
+  "author": "Zac Lim <zslim1101@gmail.com>",
+  "license": "MIT",
+  "private": false
+}
