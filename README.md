@@ -46,4 +46,4 @@ homebrew services start redis
 yarn start
 ```
 
-The server will start on `http://localhost:3000`.
+The server will start on `http://localhost:3000`. There is also a sample page ready at the base URL for testing the URL shortener directly in your browser.
