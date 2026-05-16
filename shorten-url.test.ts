@@ -14,7 +14,6 @@ describe("shorten url tests", () => {
 
   afterEach(async () => {
     await app.close();
-    vi.clearAllMocks();
   });
 
   // Unit test
@@ -36,7 +35,8 @@ describe("shorten url tests", () => {
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({
       status: "success",
-      shortUrl: expect.any(String),
+      shortCode: expect.any(String),
+      fullShortUrl: expect.any(String),
     });
   });
 
@@ -52,7 +52,7 @@ describe("shorten url tests", () => {
     expect(res.headers.location).toBe(fullUrl);
   });
 
-  it("POST /shorten_url with invalid URL should return 404", async () => {
+  it("POST /shorten_url with invalid URL should return 400", async () => {
     const res = await app.inject({
       method: "POST",
       url: "/shorten_url",
@@ -60,7 +60,7 @@ describe("shorten url tests", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(res.json().code).toBe("FST_ERR_VALIDATION");
+    expect(res.json().error).toBe("URL is not reachable");
   });
 
   it("GET /shorten_url with a non-existent key returns a 404", async () => {
@@ -73,7 +73,7 @@ describe("shorten url tests", () => {
   });
 
   it("shortens a URL then resolves it back to the original", async () => {
-    const originalUrl = "https://example.com/some/long/path";
+    const originalUrl = "https://www.google.com";
     const postRes = await app.inject({
       method: "POST",
       url: "/shorten_url",
@@ -83,11 +83,11 @@ describe("shorten url tests", () => {
     expect(postRes.statusCode).toBe(200);
     expect(postRes.json()).toEqual({
       status: "success",
-      shortUrl: expect.any(String),
+      shortCode: expect.any(String),
+      fullShortUrl: expect.any(String),
     });
 
-    const { shortUrl } = postRes.json();
-    const key = shortUrl;
+    const { shortCode: key } = postRes.json();
     const getRes = await app.inject({
       method: "GET",
       url: `/shorten_url/${key}`,

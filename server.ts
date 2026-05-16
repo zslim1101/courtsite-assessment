@@ -1,6 +1,9 @@
 import Fastify, { FastifyInstance } from "fastify";
+import fastifyStatic from "@fastify/static";
 import { Redis } from "ioredis";
 import { nanoid } from "nanoid";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import Type from "typebox";
 
 const redis = new Redis();
@@ -16,7 +19,7 @@ interface PostShortenUrlRequestBody {
 const urlSchema = {
   schema: {
     body: Type.Object({
-      url: Type.String({ format: "url" }),
+      url: Type.String(),
     }),
   },
 };
@@ -37,14 +40,32 @@ export async function shortenUrlRoutes(fastify: FastifyInstance) {
     "/shorten_url",
     urlSchema,
     async (req, reply) => {
-      fastify.log.info(`Shortening URL: ${req.body.url}`);
+      let url = req.body.url;
+      fastify.log.info(`Generating short code for: ${url}`);
 
-      const shortUrl = await shortenUrl(req.body.url);
-      await redis.set(shortUrl, req.body.url);
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        url = `https://${url}`;
+      }
+
+      // Check if URL is accessible
+      try {
+        const res = await fetch(url, { method: "HEAD" });
+        if (!res.ok) {
+          return reply.status(400).send({ error: "URL is not accessible" });
+        }
+      } catch (e) {
+        return reply.status(400).send({ error: "URL is not reachable" });
+      }
+
+      const shortCode = await shortenUrl(url);
+      await redis.set(shortCode, url);
+
+      const fullShortUrl = `http://localhost:3000/shorten_url/${shortCode}`;
 
       reply.status(200).send({
         status: "success",
-        shortUrl,
+        shortCode,
+        fullShortUrl,
       });
     },
   );
@@ -69,6 +90,12 @@ export async function shortenUrlRoutes(fastify: FastifyInstance) {
 }
 
 fastify.register(shortenUrlRoutes);
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+await fastify.register(fastifyStatic, {
+  root: join(__dirname, "public"),
+});
 
 fastify.listen({ port: 3000 }, (err, address) => {
   if (err) {

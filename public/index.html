@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>URL Shortener Test</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 480px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 12px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      background: white;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .result, .error {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .result { background: #f5f5f5; }
+    .error  { background: #fff0f0; color: #cc0000; }
+
+    pre {
+      margin: 0;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <h2>URL shortener test</h2>
+
+  <input type="text" id="urlInput" placeholder="https://example.com/some/long/path" />
+
+  <div class="buttons">
+    <button id="submitBtn" onclick="submitUrl()">Shorten URL</button>
+    <button id="gotoBtn" disabled onclick="gotoUrl()">Go to URL ↗</button>
+  </div>
+
+  <div class="result" id="result">
+    <p style="margin: 0 0 6px; font-size: 13px; color: #666;">Response</p>
+    <pre id="resultText"></pre>
+  </div>
+
+  <div class="error" id="error">
+    <p style="margin: 0 0 6px; font-size: 13px;">Error</p>
+    <pre id="errorText"></pre>
+  </div>
+
+  <script>
+    let shortUrl = null;
+
+    function setGotoEnabled(enabled) {
+      const btn = document.getElementById('gotoBtn');
+      btn.disabled = !enabled;
+    }
+
+    function gotoUrl() {
+      if (shortUrl) window.open(shortUrl, '_blank');
+    }
+
+    async function submitUrl() {
+      const url = document.getElementById('urlInput').value.trim();
+      const resultDiv = document.getElementById('result');
+      const errorDiv = document.getElementById('error');
+      const resultText = document.getElementById('resultText');
+      const errorText = document.getElementById('errorText');
+      const btn = document.getElementById('submitBtn');
+
+      resultDiv.style.display = 'none';
+      errorDiv.style.display = 'none';
+      shortUrl = null;
+      setGotoEnabled(false);
+
+      if (!url) {
+        errorDiv.style.display = 'block';
+        errorText.textContent = 'Please enter a URL';
+        return;
+      }
+
+      btn.textContent = 'Shortening...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('http://localhost:3000/shorten_url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+
+        const data = await res.json();
+
+        resultDiv.style.display = 'block';
+        resultText.textContent = JSON.stringify(data, null, 2);
+
+        if (data.fullShortUrl) {
+          shortUrl = data.fullShortUrl;
+          setGotoEnabled(true);
+        }
+      } catch (err) {
+        errorDiv.style.display = 'block';
+        errorText.textContent = err.message;
+      } finally {
+        btn.textContent = 'Shorten URL';
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('urlInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitUrl();
+    });
+  </script>
+</body>
+</html>
